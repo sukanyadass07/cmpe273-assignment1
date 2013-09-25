@@ -70,6 +70,8 @@ public class BookResource {
     					
     						isbnnum = isbnnum + 1;
     				    	book.setIsbn(isbnnum);
+    				    	
+    				    	if (book.getAuthors() != null) {
 
     						for (int i = 0; i < book.getAuthors().size(); i++ ) {
         			    		Author author = new Author();
@@ -78,17 +80,7 @@ public class BookResource {
         			    		author.setName(book.getAuthors().get(i).getName());
         			    		authors.add(author);
     						}
-        			    		
-        			    		/*if(book.getAuthors().get(i).getName().){
-        			    			author.setName(book.getAuthors().get(i).getName());
-            			    		authors.add(author);
-        			    		}
-        			    		else{
-        			    			em.setStatusCode(400);
-        	    					em.setMessage("Please enter Author of the Book in the request");
-        	    					return Response.ok(em).build();
-        			    		}*/
-        			    		book.setAuthors(authors);
+         			    		book.setAuthors(authors);
             			    	
             			    	BookAuthorStore bookAuthorStore = new BookAuthorStore();
             			    	bookAuthorStore.addAuthorToHashMap(isbnnum,authors);
@@ -103,6 +95,12 @@ public class BookResource {
             			    	links.addLink(new LinkDto("create-review", "/books/" + book.getIsbn() , "POST"));
 
             			    	return Response.status(201).entity(links).build();
+    				    	}
+    				    	else {
+        						em.setStatusCode(400);
+            					em.setMessage("Please enter Author Names of the Book in the request");
+            					return Response.ok(em).build();
+    				    	}
     						
     					}
     					else {
@@ -202,17 +200,36 @@ public class BookResource {
     @GET 
     @Path("/{isbn}/authors")
         
-    public AllBookAuthorsDto getAllBookAuthorsByIsbn(@PathParam("isbn") int isbn) {
+    public Response getAllBookAuthorsByIsbn(@PathParam("isbn") int isbn) {
     	
     	ArrayList<Author> allAuthorsList = new ArrayList<Author>();
     	BookAuthorStore bookAuthorStore = new BookAuthorStore();
     	allAuthorsList = bookAuthorStore.searchAllBookAuthorDetailsHashmap(isbn);
-	    
+    	BookStore bs = new BookStore();
+    	int count =0; 
     	
-    	AllBookAuthorsDto bookAuthorResponse = new AllBookAuthorsDto(allAuthorsList);
-    	bookAuthorResponse.addLink(new LinkDto("view-authors", "/books/" + isbn + "/authors" , "GET"));
-    		
-    	return bookAuthorResponse;
+    	if(isbn != 0){
+    		count = bs.countNumberOfBooksHashmap(isbn);
+    		if(count != 0){
+    			AllBookAuthorsDto bookAuthorResponse = new AllBookAuthorsDto(allAuthorsList);
+    	    	bookAuthorResponse.addLink(new LinkDto("view-authors", "/books/" + isbn + "/authors" , "GET"));
+    	    		
+    	    	return Response.ok(bookAuthorResponse).build();
+    			
+    		}
+    		else{
+    			ErrorMessage em = new ErrorMessage();
+        		em.setStatusCode(400);
+        		em.setMessage("Book with the given isbn is not present");
+        		return Response.ok(em).build();
+    		}
+    	}
+    	else{
+    		ErrorMessage em = new ErrorMessage();
+    		em.setStatusCode(400);
+    		em.setMessage("Please enter valid Isbn");
+    		return Response.ok(em).build();
+    	}
     }
     
     
@@ -220,25 +237,53 @@ public class BookResource {
     @GET 
     @Path("/{isbn}/authors/{id}")
         
-    public BookAuthorDto getBookAuthorsByIsbn(@PathParam("isbn") int isbn, @PathParam("id") int id) {
+    public Response getBookAuthorsByIsbn(@PathParam("isbn") int isbn, @PathParam("id") int id) {
     	
     	Author author = new Author();
     	ArrayList<Author> allAuthorsList = new ArrayList<Author>();
     	BookAuthorStore bookAuthorStore = new BookAuthorStore();
-    	allAuthorsList = bookAuthorStore.searchAllBookAuthorDetailsHashmap(isbn);
-    	for (int i =0; i < allAuthorsList.size(); i ++ ){
-    	
-    		if(allAuthorsList.get(i).getAuthorId() == id){
-    			author = allAuthorsList.get(i);
-    			break;
-    			
+    	BookStore bs = new BookStore();
+    	int count =0;
+    	boolean isAuthorPresent = false;
+    	if(isbn !=0){
+    		count = bs.countNumberOfBooksHashmap(isbn);
+    		if (count !=0){
+    	    	allAuthorsList = bookAuthorStore.searchAllBookAuthorDetailsHashmap(isbn);
+    	    	for (int i =0; i < allAuthorsList.size(); i ++ ){
+    	    	
+    	    		if(allAuthorsList.get(i).getAuthorId() == id){
+    	    			author = allAuthorsList.get(i);
+    	    			isAuthorPresent = true;
+    	    			break;
+    	    		}
+    	    	}
+    	    	
+    		    if (isAuthorPresent == true) {  	
+    	    	BookAuthorDto bookAuthorResponse = new BookAuthorDto(author);
+    	    	bookAuthorResponse.addLink(new LinkDto("view-authors", "/books/" + isbn + "/authors/" + id , "GET"));
+    	    		
+    	    	return Response.ok(bookAuthorResponse).build();
+    		    }
+    		    else{
+    		    	ErrorMessage em = new ErrorMessage();
+            		em.setStatusCode(400);
+            		em.setMessage("Author ID does not exists");
+            		return Response.ok(em).build();
+    		    }
+    		}
+    		else{
+    			ErrorMessage em = new ErrorMessage();
+        		em.setStatusCode(400);
+        		em.setMessage("Please enter valid Isbn");
+        		return Response.ok(em).build();
     		}
     	}
-	        	
-    	BookAuthorDto bookAuthorResponse = new BookAuthorDto(author);
-    	bookAuthorResponse.addLink(new LinkDto("view-authors", "/books/" + isbn + "/authors/" + id , "GET"));
-    		
-    	return bookAuthorResponse;
+    	else{
+    		ErrorMessage em = new ErrorMessage();
+    		em.setStatusCode(400);
+    		em.setMessage("Please enter valid Isbn");
+    		return Response.ok(em).build();
+    	}
     }
     
     @Timed(name = "update-book")
