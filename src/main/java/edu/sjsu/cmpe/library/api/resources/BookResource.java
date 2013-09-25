@@ -327,33 +327,45 @@ public class BookResource {
        
     public Response createReview(@PathParam("isbn") int isbn, Review review) {
     	
-    	
+    	BookStore bs = new BookStore();
+		int count=0;
     	
     	if ( isbn !=0) {
-    		if(review.getComment() != null) {
-    			if((review.getRating() !=0) && (review.getRating() >=1) && (review.getRating() <=5) ) {
-    				
-    				review_id = review_id + 1;
-    		    	review.setId(review_id);
-    				BookReviewStore bookReviewStore = new BookReviewStore();
-                	bookReviewStore.addReviewToHashMap(isbn, review_id, review);
-                	
-                	LinksDto links = new LinksDto();
-            		links.addLink(new LinkDto("view-reviews", "/books/"+isbn+"/reviews/"+review.getId(), "GET"));
+    		count = bs.countNumberOfBooksHashmap(isbn);
+    		if(count !=0){
+    			if(review.getComment() != null) {
+        			if((review.getRating() !=0) && (review.getRating() >=1) && (review.getRating() <=5) ) {
+        				
+        				review_id = review_id + 1;
+        		    	review.setId(review_id);
+        				BookReviewStore bookReviewStore = new BookReviewStore();
+                    	bookReviewStore.addReviewToHashMap(isbn, review_id, review);
+                    	
+                    	LinksDto links = new LinksDto();
+                		links.addLink(new LinkDto("view-reviews", "/books/"+isbn+"/reviews/"+review.getId(), "GET"));
 
-            		return Response.status(201).entity(links).build(); 
-    			}
+                		return Response.status(201).entity(links).build(); 
+        			}
+        			else{
+        				ErrorMessage em = new ErrorMessage();
+                		em.setStatusCode(400);
+                		em.setMessage("Please enter review rating between (1-5)");
+                		return Response.ok(em).build();
+        			}
+    		}
     			else{
     				ErrorMessage em = new ErrorMessage();
             		em.setStatusCode(400);
-            		em.setMessage("Please enter review rating between (1-5)");
+            		em.setMessage("Review Comment field is missing");
             		return Response.ok(em).build();
     			}
+    	
+    		
     		}	
     		else{
     			ErrorMessage em = new ErrorMessage();
         		em.setStatusCode(400);
-        		em.setMessage("Review Comment field is missing");
+        		em.setMessage("Book with the given Isbn does not exist");
         		return Response.ok(em).build();
     		}
     	}
@@ -379,11 +391,19 @@ public class BookResource {
     		
     		count = bs.countNumberOfBooksHashmap(isbn);
     		if(count !=0) {
-    			review = brs.searchBookReviewDetailsHashmap(isbn, id);
-    			BookReviewDto bookReviewResponse = new BookReviewDto(review);
-            	bookReviewResponse.addLink(new LinkDto("view-book", "/books/" + isbn + "/reviews/" + id, "GET"));
-            		
-            	return Response.ok(bookReviewResponse).build();
+    			count = brs.countReviewDetailsHashmap(id);
+    			if (count != 0) {
+    				review = brs.searchBookReviewDetailsHashmap(isbn, id);
+	    			BookReviewDto bookReviewResponse = new BookReviewDto(review);
+	            	bookReviewResponse.addLink(new LinkDto("view-book", "/books/" + isbn + "/reviews/" + id, "GET"));
+	            	return Response.ok(bookReviewResponse).build();
+    			}
+    			else {
+    				ErrorMessage em = new ErrorMessage();
+            		em.setStatusCode(400);
+            		em.setMessage("Review ID does not exits");
+            		return Response.ok(em).build();
+    			}
     		}
     		else {
     			ErrorMessage em = new ErrorMessage();

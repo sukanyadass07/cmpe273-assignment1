@@ -102,4 +102,13 @@ public class BookReviewStore {
 		return count;
 	}
 
+	public int countReviewDetailsHashmap(int id) {
+		int count =0;
+		
+		if (reviewDetails.containsKey(id)) {
+				count = count + 1;
+			}
+		return count;
+	}
+	
 }
